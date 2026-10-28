@@ -174,6 +174,7 @@ h2.sec{font-family:var(--f-display);font-weight:600;font-size:clamp(30px,4vw,44p
 .cbrow{display:flex;gap:10px;align-items:baseline;font-size:15px;flex-wrap:wrap}
 .cbrow b{min-width:118px}
 .cbrow em{font-style:normal;color:#4a3d5c;font-variant-numeric:tabular-nums}
+.mini.lnk{text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .vsteps{font-size:14.5px;color:var(--muted);margin:0 0 10px;line-height:1.55}.vsteps b{color:var(--text)}
 body.locked .app{display:none}
 .gate{min-height:100vh;display:grid;place-items:center;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -459,8 +460,8 @@ body.locked .app{display:none}
             </div>
 
             <div id="imageMode" hidden>
-              <p class="vsteps"><b>Як це працює:</b> оберіть, що зробити зі зразком, і натисніть «Створити запит». Потім відкрийте ChatGPT або Gemini, <b>прикріпіть своє зображення-зразок</b> і вставте запит — отримаєте готовий промпт.</p>
-              <label class="drop" id="drop" for="file" hidden>
+              <p class="vsteps"><b>Як це працює:</b> 1) завантажте зображення-зразок; 2) оберіть, що з ним зробити, і натисніть «Створити запит»; 3) у панелі праворуч скопіюйте зображення і запит та вставте обидва в ChatGPT або Gemini — отримаєте готовий промпт.</p>
+              <label class="drop" id="drop" for="file">
                 <input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
                 <span id="dropInner"><strong>Перетягніть зображення-зразок</strong><br><small>або натисніть, щоб вибрати файл · можна вставити Ctrl+V</small></span>
               </label>
@@ -526,6 +527,14 @@ body.locked .app{display:none}
                 <button class="mini" type="button" id="cbKeyPng">⤓ Ключ з відповідями PNG</button>
               </div>
               <p class="note">Кожна відповідь має свій колір у легенді, зайвих чисел немає — сайт перевіряє це сам. Легенду PNG можна вставити в Canva під малюнок, якщо нейромережа напише її неточно.</p>
+            </div>
+            <div class="imgact" id="imgAct" hidden>
+              <p class="vsteps" style="margin:4px 0 10px"><b>Далі:</b> відкрийте ChatGPT або Gemini, вставте зображення (Ctrl+V) і запит — і надішліть.</p>
+              <div class="row-btns">
+                <button class="mini" type="button" id="imgCopy">🖼 Копіювати зображення</button>
+                <a class="mini lnk" href="https://chatgpt.com/" target="_blank" rel="noopener">Відкрити ChatGPT ↗</a>
+                <a class="mini lnk" href="https://gemini.google.com/app" target="_blank" rel="noopener">Відкрити Gemini ↗</a>
+              </div>
             </div>
             <p class="note warn" id="mjnote" hidden>Midjourney погано пише кирилицю: заголовки краще додати потім у Canva.</p>
             <svg class="leaf" viewBox="0 0 90 120" fill="none" stroke="#a8704a" stroke-width="1" aria-hidden="true">
@@ -642,7 +651,7 @@ Object.keys(IMODES).forEach((k,i)=>{const l=document.createElement("label");l.cl
 /* ---------- режим (картки) ---------- */
 let mode = "materials";
 function setMode(m){
-  mode = m;
+  mode = m; if($("imgAct")) $("imgAct").hidden=true;
   document.querySelectorAll(".card").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.mode===m)));
   const img = m==="image";
   $("textMode").hidden = img; $("imageMode").hidden = !img;
@@ -1275,6 +1284,15 @@ function drawList(favOnly){
 
 /* ---------- зображення ---------- */
 let imgFile=null;
+$("imgCopy").onclick=async()=>{
+  if(!imgFile) return;
+  try{
+    const bmp=await createImageBitmap(imgFile), c=document.createElement("canvas"); c.width=bmp.width; c.height=bmp.height; c.getContext("2d").drawImage(bmp,0,0);
+    const png=await new Promise(r=>c.toBlob(r,"image/png"));
+    await navigator.clipboard.write([new ClipboardItem({"image/png":png})]);
+    flash("toast","Зображення скопійовано — вставте його в ChatGPT (Ctrl+V)");
+  }catch{ flash("toast","Браузер не дозволив скопіювати зображення — прикріпіть файл у ChatGPT вручну"); }
+};
 function takeFile(f){
   if(!f||!/^image\/(png|jpeg|webp|gif)$/.test(f.type)){ $("inote").textContent="Підходять файли PNG, JPG, WebP або GIF."; $("inote").className="note warn"; return; }
   imgFile=f; const inner=$("dropInner"); inner.innerHTML="";
@@ -1330,7 +1348,9 @@ ${$("iplatform").value==="Midjourney"?"Додай у кінці параметр
 Відповідай лише текстом промпту, без вступу, заголовків і пояснень.`;
   if (matchMedia("(max-width:1100px)").matches) out.closest(".panel").scrollIntoView({behavior:"smooth",block:"start"});
   setOut(q); save(out.textContent); syncFav();
-  $("src").textContent="Запит для ChatGPT / Gemini — прикріпіть до нього зображення-зразок";
+  $("src").textContent="Запит для ChatGPT / Gemini";
+  $("imgAct").hidden=false; $("imgCopy").hidden=!imgFile;
+  if(!imgFile) $("imgAct").querySelector(".vsteps").innerHTML="<b>Далі:</b> відкрийте ChatGPT або Gemini, прикріпіть своє зображення-зразок і вставте цей запит.";
 });
 
 $("improve").onclick=async()=>{
