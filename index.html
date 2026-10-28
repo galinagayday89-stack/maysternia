@@ -355,7 +355,7 @@ body.locked .app{display:none}
                 <label for="type">Тип матеріалу</label><select id="type"></select></div>
               <div class="q two"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M14 15c3 0 6 1.8 6 5"/></svg>
                 <label for="grade">Для якого класу?</label><label class="f2" for="subject">Предмет</label>
-                <select id="grade"></select><input class="f2" type="text" id="subject" value="Українська мова" list="subjects"></div>
+                <select id="grade"></select><input class="f2" type="text" id="subject" value="Українська мова" list="subjects" placeholder="Необов'язково"></div>
               <div class="q"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="16" r="3"/></svg>
                 <label for="topic">Тема — оберіть ідею або впишіть свою</label><input type="text" id="topic" value="Голосні та приголосні звуки" placeholder="Впишіть свою тему"></div>
               <div class="ideas" id="ideasRow">
@@ -547,9 +547,10 @@ body.locked .app{display:none}
 </div>
 <datalist id="subjects"><option value="Українська мова"><option value="Математика"><option value="Я досліджую світ"><option value="Літературне читання"><option value="Англійська мова"><option value="Інформатика"><option value="Мистецтво"><option value="Фізика"><option value="Виховна година"></datalist>
 
+<script src="config.js"></script>
 <script>
 /* ===== ВХІД ЗА КОДОМ (Google-таблиця + Apps Script) ===== */
-const API_URL = "https://script.google.com/macros/s/AKfycbySFD0FHopciBLfHTyJJyQTYa-hy0foynSEEiKKxYGcVYAVPCwyI0Rdj5a9N1QZCOvY/exec";   // адреса веб-застосунку Apps Script, що закінчується на /exec
+const API_URL = window.MI_API_URL || "";   // адреса береться з файлу config.js
 (() => {
   const LS_CODE="mi-access-code", LS_DEV="mi-device-id", LS_OK="mi-activated";
   const LAT={"А":"A","В":"B","Е":"E","К":"K","М":"M","Н":"H","О":"O","Р":"P","С":"C","Т":"T","Х":"X","І":"I","У":"Y"};
@@ -635,7 +636,7 @@ const FORMATS = {a4v:["вертикальний формат A4 (співвід�
 
 const fill = (sel, obj, pick) => { sel.innerHTML=""; Object.keys(obj).forEach(k=>{const o=document.createElement("option");o.value=o.textContent=k;if(k===pick)o.selected=true;sel.append(o);}); };
 fill($("style"),STYLES,"Мультяшний"); fill($("pal"),PALETTES,"Яскрава");
-[["0","Дошкілля"],...Array.from({length:11},(_,i)=>[String(i+1),(i+1)+" клас"])].forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;if(v==="2")o.selected=true;$("grade").append(o);});
+[["any","Без прив'язки до класу"],["0","Дошкілля"],...Array.from({length:11},(_,i)=>[String(i+1),(i+1)+" клас"])].forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;if(v==="2")o.selected=true;$("grade").append(o);});
 Object.keys(IMODES).forEach((k,i)=>{const l=document.createElement("label");l.className="pill";l.innerHTML=`<input type="radio" name="imode" id="im${i}" value="${k}"${i===0?" checked":""}><span></span>`;l.querySelector("span").textContent=k;$("imodes").append(l);});
 
 /* ---------- режим (картки) ---------- */
@@ -938,10 +939,16 @@ const IDEAS = {
   "фізика": [["Фізичні величини та одиниці","величина, позначення, одиниця, прилад"],["Агрегатні стани речовини","тверде, рідке, газоподібне з будовою частинок"],
     ["Види теплопередачі","теплопровідність, конвекція, випромінювання з прикладами"],["Механічний рух","траєкторія, шлях, швидкість з формулою"]]
 };
+const CARD_IDEAS=[["З Днем учителя","осінній букет, книжки, теплі слова подяки"],["З Днем захисників і захисниць","синьо-жовті барви, калина, слова вдячності"],
+  ["Зі святом Миколая","зимовий вечір, подарунки, зорі"],["З Новим роком","ялинка, сніжинки, вогники"],["З Різдвом Христовим","різдвяна зірка, дідух, вертеп"],
+  ["З 8 Березня","весняні квіти, ніжні кольори"],["З Великоднем","писанки, верба, весняні квіти"],["З Днем матері","квіти, серця, теплі слова для мами"],
+  ["З днем народження","повітряні кульки, торт, конфеті"],["Вітаємо випускників","дзвоник, стрічки, крила, побажання"],["З Днем знань","дзвоник, книжки, осіннє листя"],
+  ["Подяка батькам","квіти, серце, слова вдячності за підтримку"],["Вітаємо з перемогою в конкурсі","кубок, зірки, конфеті"],["Ласкаво просимо до 1 класу","шкільний ранець, букви, усмішки"]];
 const GENERIC=[["Правила класу",""],["Розклад уроків","таблиця днів тижня з порожніми клітинками"],["Осінь","ознаки осені, осінні дерева і птахи"],["Зима","ознаки зими, зимові забави"],["Свята в Україні",""]];
 let ideasOff=0, aiIdeas=null;
 function ideaList(){
   if(aiIdeas) return aiIdeas;
+  if(mode!=="image" && $("type").value==="Листівка") return CARD_IDEAS;
   const s=$("subject").value.toLowerCase(); const key=Object.keys(IDEAS).find(k=>s.includes(k));
   return key?IDEAS[key]:GENERIC;
 }
@@ -954,13 +961,16 @@ function renderIdeas(){
   $("ideasMore").hidden=list.length<=6;
 }
 $("ideasMore").onclick=()=>{ ideasOff+=6; renderIdeas(); };
+$("type").addEventListener("change",()=>{ ideasOff=0; aiIdeas=null;
+  if($("type").value==="Листівка"){ $("grade").value="any"; $("subject").value=""; const t=CARD_IDEAS[0]; $("topic").value=t[0]; $("content").value=t[1]; }
+  renderIdeas(); if(typeof syncVBox==="function") syncVBox(); });
 $("subject").addEventListener("input",()=>{ ideasOff=0; aiIdeas=null; renderIdeas(); });
 $("topic").addEventListener("input",renderIdeas);
 $("ideasAI").onclick=async()=>{
   const b=$("ideasAI"), old=b.textContent; b.disabled=true; b.textContent="Claude думає…";
   const g=$("grade").value;
   try{
-    const r=await sample.json(`Запропонуй 6 тем для наочного навчального матеріалу (тип: ${$("type").value}) з предмета «${$("subject").value.trim()||"початкова школа"}» для ${g==="0"?"дошкільнят":g+" класу"} української школи (НУШ).
+    const r=await sample.json(`Запропонуй 6 тем для наочного навчального матеріалу (тип: ${$("type").value}) з предмета «${$("subject").value.trim()||"початкова школа"}» для ${g==="0"?"дошкільнят":g==="any"?"будь-якого класу":g+" класу"} української школи (НУШ).
 Для кожної теми — коротка назва (до 6 слів) і що зобразити (до 15 слів).
 Відповідь — лише JSON-масив виду [{"topic":"Голосні звуки","content":"голосні букви в кружечках, слова з малюнками"}].`,{cache:false,modelTier:"quick"});
     if(Array.isArray(r)&&r.length){ aiIdeas=r.filter(x=>x&&x.topic).map(x=>[String(x.topic),String(x.content||"")]); ideasOff=0; renderIdeas(); }
@@ -1157,7 +1167,7 @@ $("type").addEventListener("change",syncVBox);
 $("vText").addEventListener("input",()=>{ if(!$("vText").value.trim()) vKey=""; });
 const needVerify=()=>false;
 function verifyQuery(){
-  const g=$("grade").value, who=g==="0"?"дошкільнят":g+" класу";
+  const g=$("grade").value, who=g==="0"?"дошкільнят":g==="any"?"будь-якого класу":g+" класу";
   const q=`Ти — вчитель-методист і досвідчений коректор української мови. Підготуй ТОЧНИЙ текст, який буде надруковано на навчальному матеріалі.
 Матеріал: ${$("type").value.toLowerCase()} для ${who}${$("subject").value.trim()?`, предмет «${$("subject").value.trim()}»`:""}, тема «${$("topic").value.trim()||"на вибір"}».
 Задум вчителя: ${$("content").value.trim()||"на твій вибір відповідно до теми"}.
@@ -1181,10 +1191,10 @@ function build(){
   const type=$("type").value, subject=$("subject").value.trim(), topic=$("topic").value.trim();
   const title=$("title").value.trim()||topic, grade=$("grade").value, content=$("content").value.trim();
   const mascot=heroText(), wm=$("wm").value.trim(), fmt=FORMATS[$("format").value], plat=$("platform").value;
-  const who = grade==="0"?"для дошкільнят":`для учнів ${grade} класу`;
+  const who = grade==="0"?"для дошкільнят":grade==="any"?"":`для учнів ${grade} класу`;
   const pre = {gemini:"Створи зображення: ",chatgpt:"Згенеруй зображення: ",imagen:"",mj:""}[plat];
   const p=[];
-  p.push(`${pre}${type.toLowerCase()} ${who}${subject?` з предмета «${subject}»`:""}${topic?` на тему «${topic}»`:""}.`);
+  p.push(`${pre}${type.toLowerCase()}${who?" "+who:""}${subject?` з предмета «${subject}»`:""}${topic?` на тему «${topic}»`:""}.`);
   if (!isGM()) p.push(`Тип і структура: ${list[type]}.`);
   if (title) p.push(`Заголовок на зображенні: «${title}».`);
   if (content && !isCW() && !isCB() && !verifiedText()) p.push(`Зміст: ${content}.`);
@@ -1345,7 +1355,7 @@ renderGM();
 
 $("cwSuggest").onclick=()=>{
   const topic=$("topic").value.trim()||"Осінь", g=$("grade").value;
-  const q=`Підбери 8 слів для дитячого кросворду українською мовою на тему «${topic}»${$("subject").value.trim()?` (предмет «${$("subject").value.trim()}»)`:""} для ${g==="0"?"дошкільнят":g+" класу"}.
+  const q=`Підбери 8 слів для дитячого кросворду українською мовою на тему «${topic}»${$("subject").value.trim()?` (предмет «${$("subject").value.trim()}»)`:""} для ${g==="0"?"дошкільнят":g==="any"?"будь-якого класу":g+" класу"}.
 Вимоги: кожне слово — одне слово з 3–10 букв, у називному відмінку однини, без пробілів, дефісів і апострофів; слова за чинним Українським правописом, без русизмів; слова мають багато спільних букв, щоб їх можна було перехрестити. Питання — коротке, зрозуміле дітям цього віку, без самого слова-відповіді.
 Відповідь — лише 8 рядків у форматі: слово — питання`;
   copyText(q,null,"toast");
